@@ -1,0 +1,95 @@
+package com.gefro.springbootkotlinRZOBbackend.math
+
+import com.gefro.springbootkotlinRZOBbackend.models.Income
+import com.gefro.springbootkotlinRZOBbackend.models.Recast
+import com.gefro.springbootkotlinRZOBbackend.models.User
+import com.gefro.springbootkotlinRZOBbackend.repository.HolidaysRepository
+import com.gefro.springbootkotlinRZOBbackend.repository.IncomeRepository
+import com.gefro.springbootkotlinRZOBbackend.repository.RecastRepository
+import com.gefro.springbootkotlinRZOBbackend.repository.UserRepository
+import java.math.BigDecimal
+import java.sql.Date
+import java.time.Year
+import java.time.YearMonth
+
+class Math(
+    private val userRepository: UserRepository,
+    private val holidaysRepository: HolidaysRepository,
+    private val incomeRepository: IncomeRepository,
+    private val recastRepository: RecastRepository
+    ){
+    fun mathIncome(date: Date, user_id: String): Income {
+        val LIST_OF_RECAST_HOURS_15 = mutableListOf<Double>()
+        val LIST_OF_RECAST_HOURS_2 = mutableListOf<Double>()
+        val list_holidays_of_month = mutableListOf<Date>()
+        val list = mutableListOf<Recast>()
+//        val short_date = YearMonth.of(date.year, date.month + 1)
+//        println(short_date)
+        for (element in holidaysRepository.findByYearMonth(date)){
+            list_holidays_of_month.add(element.date)
+        }
+        val rab_day = date.toLocalDate().lengthOfMonth().toBigDecimal().minus(list_holidays_of_month.size.toBigDecimal())
+        var salary = 0.0
+        val percent = 0.87
+        if (userRepository.getOne(user_id).salary != null) {
+            salary = userRepository.getOne(user_id).salary!!
+        }
+        var income_of_money = salary.toBigDecimal().times(percent.toBigDecimal())
+        val income_in_day = income_of_money.div(rab_day)
+        val income_in_hours = income_in_day.div(BigDecimal(8))
+        for (element in recastRepository.findByYearMonthAndUser(date, User(user_id))){
+            list.add(element)
+        }
+
+//        println(list.toString())
+//        for (element in userRepository.findById(user_id).get().recast){
+//            list.add(element)
+//        }
+        for (i in 0 until list.size){
+            if (list_holidays_of_month.contains(list[i].date)){
+                LIST_OF_RECAST_HOURS_2.add(list[i].recasthours)
+            }else {
+                if (list[i].recasthours > 2) {
+                    LIST_OF_RECAST_HOURS_2.add(list[i].recasthours.toBigDecimal().minus(BigDecimal(2)).toDouble())
+                    LIST_OF_RECAST_HOURS_15.add(2.0)
+                }else{
+                    LIST_OF_RECAST_HOURS_15.add(list[i].recasthours)
+                }
+            }
+        }
+
+
+
+        val k15 = LIST_OF_RECAST_HOURS_15.sum().toBigDecimal().times(BigDecimal(1.5)).times(income_in_hours)
+        val k2 = LIST_OF_RECAST_HOURS_2.sum().toBigDecimal().times(BigDecimal(2)).times(income_in_hours)
+        var itog = income_of_money.plus(k15.plus(k2))
+        val getIncome = userRepository.findById(user_id).get().income
+        var get_income: Income? = null
+        for (i in getIncome.indices){
+            if (getIncome[i].month == date.toLocalDate().monthValue &&
+                getIncome[i].year == date.toLocalDate().year){
+                get_income = getIncome[i]
+            }
+        }
+        if (get_income == null){
+            val income = Income(
+                year = date.toLocalDate().year,
+                month = date.toLocalDate().monthValue,
+                income_of_money = itog.toDouble(),
+                math_calc = true,
+                user = userRepository.getOne(user_id)
+            )
+            incomeRepository.save(income)
+        }else{
+            get_income.id?.let { incomeRepository.findById(it).map {
+                incomeDetails ->
+                val updatedIncome: Income = incomeDetails.copy(
+                    income_of_money = itog.toDouble(),
+                    math_calc = true
+                )
+                incomeRepository.save(updatedIncome)
+            } }
+        }
+        return incomeRepository.findByYearMonthAndUser(date, User(user_id))
+    }
+}
