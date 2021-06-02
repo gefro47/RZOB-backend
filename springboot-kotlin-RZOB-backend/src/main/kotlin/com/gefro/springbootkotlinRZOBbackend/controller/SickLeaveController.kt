@@ -39,15 +39,15 @@ class SickLeaveController {
     fun getSickLeaveByUserIdAndMonthYear(@PathVariable("date") date: Date, @PathVariable("user_id") user_id: String): ResponseEntity<List<SickLeave>> {
 //        Math(userRepository, holidaysRepository, incomeRepository).mathIncome(date.split("-")[1].toInt(), date.split("-")[0].toInt(), user_id)
         val month = SimpleDateFormat("yyyy-MM-dd").format(date).toString().split("-")[1]
-        val year = SimpleDateFormat("yyyy-MM-dd").format(date).toString().split("-")[2]
+        val year = SimpleDateFormat("yyyy-MM-dd").format(date).toString().split("-")[0]
         val getSickLeaveList = userRepository.findById(user_id).get().sickLeave
         val returnList = mutableListOf<SickLeave>()
 
         for (i in getSickLeaveList.indices){
             val getMonthStart = SimpleDateFormat("yyyy-MM-dd").format(getSickLeaveList[i].date_start).toString().split("-")[1]
             val getMonthStop = SimpleDateFormat("yyyy-MM-dd").format(getSickLeaveList[i].date_stop).toString().split("-")[1]
-            val getYearStart = SimpleDateFormat("yyyy-MM-dd").format(getSickLeaveList[i].date_start).toString().split("-")[2]
-            val getYearStop = SimpleDateFormat("yyyy-MM-dd").format(getSickLeaveList[i].date_stop).toString().split("-")[2]
+            val getYearStart = SimpleDateFormat("yyyy-MM-dd").format(getSickLeaveList[i].date_start).toString().split("-")[0]
+            val getYearStop = SimpleDateFormat("yyyy-MM-dd").format(getSickLeaveList[i].date_stop).toString().split("-")[0]
             if(getMonthStart == month && getYearStart == year){
                 returnList.add(getSickLeaveList[i])
             }else if (getMonthStop == month && getYearStop == year){
@@ -56,7 +56,7 @@ class SickLeaveController {
         }
 
         if (returnList.isEmpty()){
-            return ResponseEntity<List<SickLeave>>(HttpStatus.NO_CONTENT)
+            return ResponseEntity<List<SickLeave>>(HttpStatus.BAD_REQUEST)
         }
         return ResponseEntity<List<SickLeave>>(returnList, HttpStatus.OK)
 
