@@ -119,7 +119,7 @@ class RecastController {
     }
 
     @PutMapping("/recasts/{id}")
-    fun updateRecastById(@PathVariable("id") id: Int, @RequestBody recast: Recast): ResponseEntity<Recast> {
+    fun updateRecastById(@PathVariable("id") id: Long, @RequestBody recast: Recast): ResponseEntity<Recast> {
         return recastRepository.findById(id).map {
                 recastDetails ->
             val updatedRecast: Recast = recastDetails.copy(
@@ -130,7 +130,7 @@ class RecastController {
     }
 
     @DeleteMapping("/recasts/{id}")
-    fun removeRecastById(@PathVariable("id") id: Int): ResponseEntity<Void> {
+    fun removeRecastById(@PathVariable("id") id: Long): ResponseEntity<Void> {
         val recast = recastRepository.findById(id)
         if (recast.isPresent) {
             recastRepository.deleteById(id)

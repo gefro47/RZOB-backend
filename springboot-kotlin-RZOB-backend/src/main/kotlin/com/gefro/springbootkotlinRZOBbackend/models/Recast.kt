@@ -10,7 +10,7 @@ import javax.persistence.*
 data class Recast(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Int,
+    var id: Long,
     var date: Date,
     var recasthours: Double,
     @ManyToOne

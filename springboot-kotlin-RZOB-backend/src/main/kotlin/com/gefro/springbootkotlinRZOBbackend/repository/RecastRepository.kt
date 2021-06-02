@@ -9,7 +9,7 @@ import java.sql.Date
 import java.util.*
 
 @Repository
-interface RecastRepository : JpaRepository <Recast, Int>
+interface RecastRepository : JpaRepository <Recast, Long>
 {
     fun findByUser(user: User): List<Recast>
 
