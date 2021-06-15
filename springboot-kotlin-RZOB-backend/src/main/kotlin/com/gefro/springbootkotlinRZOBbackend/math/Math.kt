@@ -3,26 +3,28 @@ package com.gefro.springbootkotlinRZOBbackend.math
 import com.gefro.springbootkotlinRZOBbackend.models.Income
 import com.gefro.springbootkotlinRZOBbackend.models.Recast
 import com.gefro.springbootkotlinRZOBbackend.models.User
-import com.gefro.springbootkotlinRZOBbackend.repository.HolidaysRepository
-import com.gefro.springbootkotlinRZOBbackend.repository.IncomeRepository
-import com.gefro.springbootkotlinRZOBbackend.repository.RecastRepository
-import com.gefro.springbootkotlinRZOBbackend.repository.UserRepository
+import com.gefro.springbootkotlinRZOBbackend.repository.*
 import java.math.BigDecimal
 import java.sql.Date
 import java.time.Year
 import java.time.YearMonth
+import java.util.concurrent.TimeUnit
 
 class Math(
     private val userRepository: UserRepository,
     private val holidaysRepository: HolidaysRepository,
     private val incomeRepository: IncomeRepository,
-    private val recastRepository: RecastRepository
+    private val recastRepository: RecastRepository,
+    private val sickLeaveRepository: SickLeaveRepository,
+    private val vacationRepository: VacationRepository
     ){
     fun mathIncome(date: Date, user_id: String): Income {
+        val one_day: Long = 1000 * 60 * 60 * 24
         val LIST_OF_RECAST_HOURS_15 = mutableListOf<Double>()
         val LIST_OF_RECAST_HOURS_2 = mutableListOf<Double>()
         val list_holidays_of_month = mutableListOf<Date>()
         val list = mutableListOf<Recast>()
+        var schet: Int = 0
 //        val short_date = YearMonth.of(date.year, date.month + 1)
 //        println(short_date)
         for (element in holidaysRepository.findByYearMonth(date)){
@@ -31,12 +33,41 @@ class Math(
         val rab_day = date.toLocalDate().lengthOfMonth().toBigDecimal().minus(list_holidays_of_month.size.toBigDecimal())
         var salary = 0.0
         val percent = 0.87
+
+        val sick_leave_list = mutableListOf<Date>()
+        val sick_leave = sickLeaveRepository.findByYearMonthAndUserStart(date, User(user_id))
+        for (i in sick_leave.indices){
+            val dif = TimeUnit.DAYS.convert(sick_leave[i].date_stop.time - sick_leave[i].date_start.time, TimeUnit.MILLISECONDS)
+            for(j in 0..dif.toInt()){
+                sick_leave_list.add(Date(sick_leave[i].date_start.time + j*one_day))
+            }
+        }
+        val vacation_list = mutableListOf<Date>()
+        val vacation = vacationRepository.findByYearMonthAndUserStart(date, User(user_id))
+        for (i in vacation.indices){
+            val dif = TimeUnit.DAYS.convert(vacation[i].date_stop.time - vacation[i].date_start.time, TimeUnit.MILLISECONDS)
+            for(j in 0..dif.toInt()){
+                vacation_list.add(Date(sick_leave[i].date_start.time + j*one_day))
+            }
+        }
+        for(i in vacation_list.indices){
+            if(!list_holidays_of_month.contains(vacation_list[i])){
+                schet++
+            }
+        }
+        for(i in sick_leave_list.indices){
+            if(!list_holidays_of_month.contains(sick_leave_list[i])){
+                schet++
+            }
+        }
+
         if (userRepository.getOne(user_id).salary != null) {
             salary = userRepository.getOne(user_id).salary!!
         }
         var income_of_money = salary.toBigDecimal().times(percent.toBigDecimal())
         val income_in_day = income_of_money.div(rab_day)
         val income_in_hours = income_in_day.div(BigDecimal(8))
+        val nerabmoney = income_in_day.multiply(schet.toBigDecimal())
         for (element in recastRepository.findByYearMonthAndUser(date, User(user_id))){
             list.add(element)
         }
@@ -62,7 +93,8 @@ class Math(
 
         val k15 = LIST_OF_RECAST_HOURS_15.sum().toBigDecimal().times(BigDecimal(1.5)).times(income_in_hours)
         val k2 = LIST_OF_RECAST_HOURS_2.sum().toBigDecimal().times(BigDecimal(2)).times(income_in_hours)
-        var itog = income_of_money.plus(k15.plus(k2))
+        var itog1 = income_of_money.plus(k15.plus(k2))
+        var itog = itog1.minus(nerabmoney)
         val getIncome = userRepository.findById(user_id).get().income
         var get_income: Income? = null
         for (i in getIncome.indices){

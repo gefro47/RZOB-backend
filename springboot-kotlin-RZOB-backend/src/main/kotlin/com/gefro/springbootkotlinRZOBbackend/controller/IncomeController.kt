@@ -3,10 +3,7 @@ package com.gefro.springbootkotlinRZOBbackend.controller
 
 import com.gefro.springbootkotlinRZOBbackend.math.Math
 import com.gefro.springbootkotlinRZOBbackend.models.Income
-import com.gefro.springbootkotlinRZOBbackend.repository.HolidaysRepository
-import com.gefro.springbootkotlinRZOBbackend.repository.IncomeRepository
-import com.gefro.springbootkotlinRZOBbackend.repository.RecastRepository
-import com.gefro.springbootkotlinRZOBbackend.repository.UserRepository
+import com.gefro.springbootkotlinRZOBbackend.repository.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -36,6 +33,12 @@ class IncomeController {
 
     @Autowired
     lateinit var userRepository: UserRepository
+
+    @Autowired
+    lateinit var sickLeaveRepository: SickLeaveRepository
+
+    @Autowired
+    lateinit var vacationRepository: VacationRepository
 
     @GetMapping("{user_id}/income")
     fun getAllIncomeByUserId(@PathVariable("user_id") user_id: String): ResponseEntity<List<Income>> {
@@ -69,7 +72,7 @@ class IncomeController {
 
     @GetMapping("calc/{user_id}/income/{date}")
     fun getIncomeCalc(@PathVariable("date") date: Date, @PathVariable("user_id") user_id: String): ResponseEntity<Income>{
-        val calc = Math(userRepository, holidaysRepository, incomeRepository, recastRepository).mathIncome(date, user_id)
+        val calc = Math(userRepository, holidaysRepository, incomeRepository, recastRepository, sickLeaveRepository, vacationRepository).mathIncome(date, user_id)
 //        val getIncome = userRepository.findById(user_id).get().income
 //        var get_income: Income? = null
 //        for (i in getIncome.indices){
