@@ -20,5 +20,8 @@ data class User(
     var recast: List<Recast> = emptyList(),
     @OneToMany(cascade = [CascadeType.ALL], mappedBy = "user", orphanRemoval = true)
     @JsonManagedReference
-    var sickLeave: List<SickLeave> = emptyList()
+    var sickLeave: List<SickLeave> = emptyList(),
+    @OneToMany(cascade = [CascadeType.ALL], mappedBy = "user", orphanRemoval = true)
+    @JsonManagedReference
+    var vacation: List<Vacation> = emptyList()
 )

@@ -1,10 +1,9 @@
 package com.gefro.springbootkotlinRZOBbackend.controller
 
-import com.gefro.springbootkotlinRZOBbackend.models.Income
-import com.gefro.springbootkotlinRZOBbackend.models.Recast
 import com.gefro.springbootkotlinRZOBbackend.models.SickLeave
 import com.gefro.springbootkotlinRZOBbackend.models.User
-import com.gefro.springbootkotlinRZOBbackend.repository.*
+import com.gefro.springbootkotlinRZOBbackend.repository.SickLeaveRepository
+import com.gefro.springbootkotlinRZOBbackend.repository.UserRepository
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -19,15 +18,6 @@ import java.text.SimpleDateFormat
 @RestController
 @RequestMapping(value = ["/api"])
 class SickLeaveController {
-
-    @Autowired
-    lateinit var incomeRepository: IncomeRepository
-
-    @Autowired
-    lateinit var holidaysRepository: HolidaysRepository
-
-    @Autowired
-    lateinit var recastRepository: RecastRepository
 
     @Autowired
     lateinit var userRepository: UserRepository
@@ -62,8 +52,34 @@ class SickLeaveController {
 
     }
 
+    @GetMapping("/{user_id}/sickleave/year/{date}")
+    fun getSickLeaveByUserIdAndYear(@PathVariable("date") date: String, @PathVariable("user_id") user_id: String): ResponseEntity<List<SickLeave>> {
+        val getSickLeaveListByStart = sickLeaveRepository.findByYearAndUserStart(Date.valueOf(date), User(user_id))
+        val getSickLeaveListByStop = sickLeaveRepository.findByYearAndUserStop(Date.valueOf(date), User(user_id))
+        val returnList = mutableListOf<SickLeave>()
+
+        if (getSickLeaveListByStart.isNotEmpty()){
+            for (i in getSickLeaveListByStart.indices){
+                returnList.add(getSickLeaveListByStart[i])
+            }
+        }
+        if (getSickLeaveListByStop.isNotEmpty()){
+            for (i in getSickLeaveListByStop.indices){
+                if (!getSickLeaveListByStart.contains(getSickLeaveListByStop[i])){
+                    returnList.add(getSickLeaveListByStop[i])
+                }
+            }
+        }
+
+        if (returnList.isEmpty()){
+            return ResponseEntity<List<SickLeave>>(HttpStatus.BAD_REQUEST)
+        }
+        return ResponseEntity<List<SickLeave>>(returnList, HttpStatus.OK)
+
+    }
+
     @PostMapping("/sickleave")
-    fun addNewRecast(@RequestBody sickLeave: SickLeave, uri: UriComponentsBuilder): ResponseEntity<SickLeave>{
+    fun addNewSickLeave(@RequestBody sickLeave: SickLeave, uri: UriComponentsBuilder): ResponseEntity<SickLeave>{
         val saveSickLeave = sickLeaveRepository.save(sickLeave)
         if(ObjectUtils.isEmpty(saveSickLeave)){
             return ResponseEntity<SickLeave>(HttpStatus.BAD_REQUEST)
@@ -74,7 +90,7 @@ class SickLeaveController {
     }
 
     @PutMapping("/sickleave/{id}")
-    fun updateRecastById(@PathVariable("id") id: Long, @RequestBody sickLeave: SickLeave): ResponseEntity<SickLeave> {
+    fun updateSickLeaveById(@PathVariable("id") id: Long, @RequestBody sickLeave: SickLeave): ResponseEntity<SickLeave> {
         return sickLeaveRepository.findById(id).map {
                 sickLeaveDetails ->
             val updatedSickLeave: SickLeave = sickLeaveDetails.copy(
@@ -86,11 +102,10 @@ class SickLeaveController {
     }
 
     @DeleteMapping("/sickleave/{id}")
-    fun removeRecastById(@PathVariable("id") id: Long): ResponseEntity<Void> {
+    fun removeSickLeaveById(@PathVariable("id") id: Long): ResponseEntity<Void> {
         val sickleave = sickLeaveRepository.findById(id)
         if (sickleave.isPresent) {
             sickLeaveRepository.deleteById(id)
-//            getRecastByYearAndMonth(date.split("-")[0].toInt(), date.split("-")[1].toInt())
             return ResponseEntity<Void>(HttpStatus.NO_CONTENT)
         }
         return ResponseEntity<Void>(HttpStatus.INTERNAL_SERVER_ERROR)

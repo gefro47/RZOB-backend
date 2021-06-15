@@ -15,4 +15,9 @@ interface SickLeaveRepository: JpaRepository<SickLeave, Long> {
 //
 //    @Query("from SickLeave where MONTH(date) = MONTH(:date_stop) and YEAR(date_stop) = YEAR(:date) and user = :user")
 //    fun findByYearMonthAndUserStop(date: Date, user: User): List<SickLeave>
+    @Query("from SickLeave where YEAR(date_start) = YEAR(:date_start) and user = :user")
+    fun findByYearAndUserStart(date_start: Date, user: User): List<SickLeave>
+
+    @Query("from SickLeave where YEAR(date_stop) = YEAR(:date_stop) and user = :user")
+    fun findByYearAndUserStop(date_stop: Date, user: User): List<SickLeave>
 }
