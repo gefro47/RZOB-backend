@@ -1,8 +1,6 @@
 package com.gefro.springbootkotlinRZOBbackend.math
 
-import com.gefro.springbootkotlinRZOBbackend.models.Income
-import com.gefro.springbootkotlinRZOBbackend.models.Recast
-import com.gefro.springbootkotlinRZOBbackend.models.User
+import com.gefro.springbootkotlinRZOBbackend.models.*
 import com.gefro.springbootkotlinRZOBbackend.repository.*
 import java.math.BigDecimal
 import java.sql.Date
@@ -19,14 +17,18 @@ class Math(
     private val vacationRepository: VacationRepository
     ){
     fun mathIncome(date: Date, user_id: String): Income {
-        val one_day: Long = 1000 * 60 * 60 * 24
+//        val one_day: Long = 1000 * 60 * 60 * 24
         val LIST_OF_RECAST_HOURS_15 = mutableListOf<Double>()
         val LIST_OF_RECAST_HOURS_2 = mutableListOf<Double>()
         val list_holidays_of_month = mutableListOf<Date>()
         val list = mutableListOf<Recast>()
-        var schet: Int = 0
-//        val short_date = YearMonth.of(date.year, date.month + 1)
-//        println(short_date)
+
+        val LIST_OF_VACATION = checkvacatin(date, vacationRepository.findByYearAndUserStart(date, User(user_id)),vacationRepository.findByYearAndUserStop(date, User(user_id)))
+
+
+
+
+
         for (element in holidaysRepository.findByYearMonth(date)){
             list_holidays_of_month.add(element.date)
         }
@@ -34,32 +36,6 @@ class Math(
         var salary = 0.0
         val percent = 0.87
 
-        val sick_leave_list = mutableListOf<Date>()
-        val sick_leave = sickLeaveRepository.findByYearMonthAndUserStart(date, User(user_id))
-        for (i in sick_leave.indices){
-            val dif = TimeUnit.DAYS.convert(sick_leave[i].date_stop.time - sick_leave[i].date_start.time, TimeUnit.MILLISECONDS)
-            for(j in 0..dif.toInt()){
-                sick_leave_list.add(Date(sick_leave[i].date_start.time + j*one_day))
-            }
-        }
-        val vacation_list = mutableListOf<Date>()
-        val vacation = vacationRepository.findByYearMonthAndUserStart(date, User(user_id))
-        for (i in vacation.indices){
-            val dif = TimeUnit.DAYS.convert(vacation[i].date_stop.time - vacation[i].date_start.time, TimeUnit.MILLISECONDS)
-            for(j in 0..dif.toInt()){
-                vacation_list.add(Date(sick_leave[i].date_start.time + j*one_day))
-            }
-        }
-        for(i in vacation_list.indices){
-            if(!list_holidays_of_month.contains(vacation_list[i])){
-                schet++
-            }
-        }
-        for(i in sick_leave_list.indices){
-            if(!list_holidays_of_month.contains(sick_leave_list[i])){
-                schet++
-            }
-        }
 
         if (userRepository.getOne(user_id).salary != null) {
             salary = userRepository.getOne(user_id).salary!!
@@ -67,7 +43,6 @@ class Math(
         var income_of_money = salary.toBigDecimal().times(percent.toBigDecimal())
         val income_in_day = income_of_money.div(rab_day)
         val income_in_hours = income_in_day.div(BigDecimal(8))
-        val nerabmoney = income_in_day.multiply(schet.toBigDecimal())
         for (element in recastRepository.findByYearMonthAndUser(date, User(user_id))){
             list.add(element)
         }
@@ -93,8 +68,7 @@ class Math(
 
         val k15 = LIST_OF_RECAST_HOURS_15.sum().toBigDecimal().times(BigDecimal(1.5)).times(income_in_hours)
         val k2 = LIST_OF_RECAST_HOURS_2.sum().toBigDecimal().times(BigDecimal(2)).times(income_in_hours)
-        var itog1 = income_of_money.plus(k15.plus(k2))
-        var itog = itog1.minus(nerabmoney)
+        val itog = income_of_money.plus(k15.plus(k2))
         val getIncome = userRepository.findById(user_id).get().income
         var get_income: Income? = null
         for (i in getIncome.indices){
@@ -125,3 +99,82 @@ class Math(
         return incomeRepository.findByYearMonthAndUser(date, User(user_id))
     }
 }
+
+
+fun checkvacatin(date: Date, list_of_vacation_start: List<Vacation>, list_of_vacation_stop: List<Vacation>): List<Vacation>{
+
+    val LIST_OF_VACATION = mutableListOf<Vacation>()
+
+//    val list_of_vacation_start = vacationRepository.findByYearAndUserStart(date, User(user_id))
+//    val list_of_vacation_stop = vacationRepository.findByYearAndUserStop(date, User(user_id))
+
+    for (i in list_of_vacation_start.indices){
+        LIST_OF_VACATION.add(list_of_vacation_start[i])
+    }
+    for (i in list_of_vacation_stop.indices){
+        if (!LIST_OF_VACATION.contains(list_of_vacation_stop[i])){
+            LIST_OF_VACATION.add(list_of_vacation_stop[i])
+        }
+    }
+    val LIST_OF_VACATION_RETURN = mutableListOf<Vacation>()
+
+    val datemonth = date.toLocalDate().monthValue
+    val dateyear = date.toLocalDate().year
+
+    for (i in LIST_OF_VACATION.indices) {
+        val monthstart = LIST_OF_VACATION[i].date_start.toLocalDate().monthValue
+        val yearstart = LIST_OF_VACATION[i].date_start.toLocalDate().year
+
+        val monthstop = LIST_OF_VACATION[i].date_stop.toLocalDate().monthValue
+        val yearstop = LIST_OF_VACATION[i].date_stop.toLocalDate().year
+
+        if (monthstart == datemonth && yearstart == dateyear){
+            if (yearstart == yearstop) {
+                if ((monthstop - monthstart) == 1) {
+                    LIST_OF_VACATION_RETURN.add(LIST_OF_VACATION[i])
+                    println("${LIST_OF_VACATION[i].date_start} - ${LIST_OF_VACATION[i].date_stop}")
+                }
+            }else{
+                if ((monthstop - monthstart + 12) == 1) {
+                    LIST_OF_VACATION_RETURN.add(LIST_OF_VACATION[i])
+                    println("${LIST_OF_VACATION[i].date_start} - ${LIST_OF_VACATION[i].date_stop}")
+                }
+            }
+        }
+
+        if (monthstop == datemonth && yearstop == dateyear){
+            if (yearstart == yearstop) {
+                if ((monthstop - monthstart) == 1) {
+                    LIST_OF_VACATION_RETURN.add(LIST_OF_VACATION[i])
+                    println("${LIST_OF_VACATION[i].date_start} - ${LIST_OF_VACATION[i].date_stop}")
+                }
+            }else{
+                if ((monthstop - monthstart + 12) == 1) {
+                    LIST_OF_VACATION_RETURN.add(LIST_OF_VACATION[i])
+                    println("${LIST_OF_VACATION[i].date_start} - ${LIST_OF_VACATION[i].date_stop}")
+                }
+            }
+        }
+
+
+        if (yearstart == yearstop){
+            if ((monthstop - monthstart) > 1){
+                if (date.after(LIST_OF_VACATION[i].date_start) && date.before(LIST_OF_VACATION[i].date_stop)) {
+                    LIST_OF_VACATION_RETURN.add(LIST_OF_VACATION[i])
+                    println("${LIST_OF_VACATION[i].date_start} - ${LIST_OF_VACATION[i].date_stop}")
+                }
+            }
+        }else{
+            if ((monthstop - monthstart+12) > 1){
+                if (date.after(LIST_OF_VACATION[i].date_start) && date.before(LIST_OF_VACATION[i].date_stop)) {
+                    LIST_OF_VACATION_RETURN.add(LIST_OF_VACATION[i])
+                    println("${LIST_OF_VACATION[i].date_start} - ${LIST_OF_VACATION[i].date_stop}")
+                }
+            }
+        }
+
+    }
+
+    return LIST_OF_VACATION_RETURN
+}
+
