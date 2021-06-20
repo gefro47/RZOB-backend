@@ -165,7 +165,6 @@ fun checkvacatin(date: Date, list_of_vacation_start: List<Vacation>, list_of_vac
 
 fun checkDatesVacationOfMonth(date: Date, list_of_vacation: List<Vacation>, list_holidays_of_month: List<Date>): Int{
     var list_schet = 0
-    val c =Calendar.getInstance()
     val maxDateOfMonth = date.toLocalDate().with(TemporalAdjusters.lastDayOfMonth()).dayOfMonth
     val list_rab_day = mutableListOf<Date>()
 
@@ -182,7 +181,7 @@ fun checkDatesVacationOfMonth(date: Date, list_of_vacation: List<Vacation>, list
         val schet = (stop_days.time - start_days.time)/ one_day + 1
         val month = date.toLocalDate().monthValue
 
-        for (j in 0..schet.toInt()){
+        for (j in 0 until schet.toInt()){
             val date_of_vacation = Date(start_days.time + (one_day * j))
             if (date_of_vacation.toLocalDate().monthValue == month){
                 for (k in list_rab_day.indices){
