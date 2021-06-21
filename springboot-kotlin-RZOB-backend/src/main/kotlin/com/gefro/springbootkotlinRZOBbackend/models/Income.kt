@@ -1,6 +1,7 @@
 package com.gefro.springbootkotlinRZOBbackend.models
 
 import com.fasterxml.jackson.annotation.JsonBackReference
+import java.sql.Date
 import javax.persistence.*
 
 @Entity
@@ -12,6 +13,10 @@ data class Income(
     var year: Int,
     var month: Int,
     var income_of_money: Double,
+    var date_of_avans: Date,
+    var avans: Double? = null,
+    var date_of_income_without_avans: Date,
+    var income_without_avans: Double? = null,
     var math_calc: Boolean,
     @ManyToOne
     @JoinColumn(name = "user_id")

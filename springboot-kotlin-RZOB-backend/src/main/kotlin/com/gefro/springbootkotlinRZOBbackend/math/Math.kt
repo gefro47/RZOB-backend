@@ -2,15 +2,9 @@ package com.gefro.springbootkotlinRZOBbackend.math
 
 import com.gefro.springbootkotlinRZOBbackend.models.*
 import com.gefro.springbootkotlinRZOBbackend.repository.*
-import com.gefro.springbootkotlinRZOBbackend.utilits.checkDatesSickLeaveOfMonth
-import com.gefro.springbootkotlinRZOBbackend.utilits.checkDatesVacationOfMonth
-import com.gefro.springbootkotlinRZOBbackend.utilits.checksickleave
-import com.gefro.springbootkotlinRZOBbackend.utilits.checkvacatin
+import com.gefro.springbootkotlinRZOBbackend.utilits.*
 import java.math.BigDecimal
 import java.sql.Date
-import java.time.Year
-import java.time.YearMonth
-import java.util.concurrent.TimeUnit
 
 class Math(
     private val userRepository: UserRepository,
@@ -69,13 +63,47 @@ class Math(
             }
         }
 
-
-
         val k15 = LIST_OF_RECAST_HOURS_15.sum().toBigDecimal().times(BigDecimal(1.5)).times(income_in_hours)
         val k2 = LIST_OF_RECAST_HOURS_2.sum().toBigDecimal().times(BigDecimal(2)).times(income_in_hours)
         val itog1 = income_of_money.plus(k15.plus(k2))
         val itog2 = itog1.minus(income_in_day.times(schet_vacation.toBigDecimal()))
         val itog = itog2.minus(income_in_day.times(schet_sick_leave.toBigDecimal()))
+
+
+        val avans: Double
+        val income_without_avans: Double
+        val polzp = salary.toBigDecimal().div(BigDecimal(2)).times(BigDecimal(0.87))
+        val polincome = itog.div(BigDecimal(2))
+        if(polzp < polincome){
+            avans = polzp.toDouble()
+            income_without_avans = itog.minus(polzp).toDouble()
+        }else{
+            avans = polincome.toDouble()
+            income_without_avans = polincome.toDouble()
+        }
+
+        var date_avans: Date = Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue}-20")
+        var date_income_without_avans:Date = Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue}-05")
+
+        for (i in 0..14){
+            if (!list_holidays_of_month.contains(Date(Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue}-20").time - (one_day*i)))){
+                date_avans = Date(Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue}-20").time - (one_day*i))
+                break
+            }
+        }
+
+        val holidays_of_next_month = mutableListOf<Date>()
+        for (element in holidaysRepository.findByYearMonth(Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue+1}-1"))){
+            holidays_of_next_month.add(element.date)
+        }
+
+        for (i in 0..14){
+            if (!holidays_of_next_month.contains(Date(Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue+1}-5").time - (one_day*i)))){
+                date_income_without_avans = Date(Date.valueOf("${date.toLocalDate().year}-${date.toLocalDate().monthValue+1}-5").time - (one_day*i))
+                break
+            }
+        }
+
         val getIncome = userRepository.findById(user_id).get().income
         var get_income: Income? = null
         for (i in getIncome.indices){
@@ -89,6 +117,10 @@ class Math(
                 year = date.toLocalDate().year,
                 month = date.toLocalDate().monthValue,
                 income_of_money = itog.toDouble(),
+                date_of_avans = date_avans,
+                avans = avans,
+                date_of_income_without_avans = date_income_without_avans,
+                income_without_avans = income_without_avans,
                 math_calc = true,
                 user = userRepository.getOne(user_id)
             )
@@ -98,6 +130,10 @@ class Math(
                 incomeDetails ->
                 val updatedIncome: Income = incomeDetails.copy(
                     income_of_money = itog.toDouble(),
+                    date_of_avans = date_avans,
+                    avans = avans,
+                    date_of_income_without_avans = date_income_without_avans,
+                    income_without_avans = income_without_avans,
                     math_calc = true
                 )
                 incomeRepository.save(updatedIncome)
