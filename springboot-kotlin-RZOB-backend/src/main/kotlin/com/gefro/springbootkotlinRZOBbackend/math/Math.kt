@@ -2,7 +2,9 @@ package com.gefro.springbootkotlinRZOBbackend.math
 
 import com.gefro.springbootkotlinRZOBbackend.models.*
 import com.gefro.springbootkotlinRZOBbackend.repository.*
+import com.gefro.springbootkotlinRZOBbackend.utilits.checkDatesSickLeaveOfMonth
 import com.gefro.springbootkotlinRZOBbackend.utilits.checkDatesVacationOfMonth
+import com.gefro.springbootkotlinRZOBbackend.utilits.checksickleave
 import com.gefro.springbootkotlinRZOBbackend.utilits.checkvacatin
 import java.math.BigDecimal
 import java.sql.Date
@@ -26,13 +28,14 @@ class Math(
         val list = mutableListOf<Recast>()
 
         val LIST_OF_VACATION = checkvacatin(date, vacationRepository.findByYearAndUserStart(date, User(user_id)),vacationRepository.findByYearAndUserStop(date, User(user_id)))
-
+        val LIST_OF_SICK_LEAVE = checksickleave(date, sickLeaveRepository.findByYearAndUserStart(date, User(user_id)), sickLeaveRepository.findByYearAndUserStop(date, User(user_id)))
 
         for (element in holidaysRepository.findByYearMonth(date)){
             list_holidays_of_month.add(element.date)
         }
 
         val schet_vacation = checkDatesVacationOfMonth(date, LIST_OF_VACATION, list_holidays_of_month)
+        val schet_sick_leave = checkDatesSickLeaveOfMonth(date, LIST_OF_SICK_LEAVE, list_holidays_of_month)
 
         val rab_day = date.toLocalDate().lengthOfMonth().toBigDecimal().minus(list_holidays_of_month.size.toBigDecimal())
         var salary = 0.0
@@ -71,7 +74,8 @@ class Math(
         val k15 = LIST_OF_RECAST_HOURS_15.sum().toBigDecimal().times(BigDecimal(1.5)).times(income_in_hours)
         val k2 = LIST_OF_RECAST_HOURS_2.sum().toBigDecimal().times(BigDecimal(2)).times(income_in_hours)
         val itog1 = income_of_money.plus(k15.plus(k2))
-        val itog = itog1.minus(income_in_day.times(schet_vacation.toBigDecimal()))
+        val itog2 = itog1.minus(income_in_day.times(schet_vacation.toBigDecimal()))
+        val itog = itog2.minus(income_in_day.times(schet_sick_leave.toBigDecimal()))
         val getIncome = userRepository.findById(user_id).get().income
         var get_income: Income? = null
         for (i in getIncome.indices){
